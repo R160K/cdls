@@ -1,4 +1,4 @@
-﻿#!/bin/powershell
+﻿#!/bin/pwsh
 
 #Productivity script to cd to a folder, list its contents and allow the user to enter other directories recursively
 
@@ -6,6 +6,7 @@
 #TODO: ADD PARENT SCRIPT HISTORY
 
 #TODO: Make sure it works properly on linux with ls -al and zero/negative indices for . and ..
+#TODO: doesn't work on PowerShell on Linux (which doesn't really matter anyway)
 
 #Accept a path parameter
 param (
