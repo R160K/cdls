@@ -7,7 +7,6 @@
 
 // TODO: Decide if a dot string with an integer should be number of dots or mirror non-positive integers
 
-
 #include <iostream>
 #include <string>
 #include <filesystem>
@@ -311,9 +310,11 @@ bool ChkDir(fs::path path, bool _change = false)
 // Dot-path (needed for Windows)
 std::string DotPath(int num_dots)
 {
-	// Return single dot if number of dots is one
+	// Return single dot if number of dots is one, or double dots if two
 	if (num_dots == 1) { return "."; }
 	
+	//Reduce number of dots by one to get correct number of array elements
+	num_dots--;
 	std::vector<std::string> dots(num_dots, "..");
 	
 	// Join with "/"
@@ -439,7 +440,6 @@ void print_table(std::vector<ChildItem> children)
 }
 
 
-
 // The main course
 int Ennumerate()
 {	
@@ -500,7 +500,7 @@ int Ennumerate()
 	
 	// Process input
 	if (input == "") { // If blank, return to parent shell
-		return -1; // Tell main to exit
+		return 3; // Asked to exit
 	}
 	
 	try { // Check for an integer argument
@@ -526,7 +526,7 @@ int Ennumerate()
 			fs::current_path(input);
 		} else { // Invalid cdls input, pass to shell
 			std::cout << input << std::endl;
-			return -2;
+			return 1; // Invalid shell argument
 		}
 	}
 	
@@ -535,17 +535,25 @@ int Ennumerate()
 }
 
 
+
 int main(int argc, char* argv[])
 {
+	int retval = 0;
+	
 	// If an argument has been provided, try to change CWD	
 	if (argv[1]) {
 		ChkDir(argv[1], true);
 	}
 	
+	// TODO: Sort this, currently is returning 3 (in python) regardless of whether blank or correct command
 	while (true) {
 		int going = Ennumerate();
-		if (going < 0) { break; };
+		if (going > 0) { 
+			if (going != 3) { retval = going; }
+			break;
+			}
 		}
 	
-	return 0;
+	return retval;
 }
+

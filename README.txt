@@ -1,7 +1,11 @@
 This is a simple productivity tool to speed up directory navigation in the command line.
 
 
-CURRENTLY, it is a PowerShell script. I might either replicate it in other shells or make it a standalone application (if I can be bothered).
+It is most effective as a native PowerShell script ./scripts/powershell_native.ps1).
+Also a C++ program (./bin/app.exe).
+
+The C++ executable is found in ./bin, the PowershellScript is found in ./scripts, the C++ source is found in ./src
+Everything else is still in development and is experimental.
 
 
 The script, when given a directory path (and as the name might suggest), performs cd to the path and then ls (ls -la), adds an index for each directory, then asks for an input command. If no directory is given, defaults to ".".
@@ -19,6 +23,6 @@ Commands:
 4. Comma strings: entering a string of commas will move down the directory tree, from root, by the number of commas minus 1.
 4.1 As with dot strings, a single comma followed by an integer will be interpreted as a string of the specified number of commas.
 
-5. Anything other than an integer, existing path or a comma or dot string will be invoked as a regular command (PowerShell).
+5. Anything other than an integer, existing path or a comma or dot string will be invoked as a regular command (PowerShell). Will end execution (C++).
 
 6. Enter a blank command (or exit) to quit back to parent shell.
