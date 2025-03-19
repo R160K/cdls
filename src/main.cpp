@@ -1,11 +1,14 @@
 // Compiled shell and platform agnostic core of cdls
 
-// TODO: Loop through arguments to find a path (add option for setting a shell)
-// TODO: Allow multiple shells
-// TODO: Write an error if the path is incorrect
+
+// TODO: Make it so that cmdline args can be passed
+// TODO: Allow outside callers to run a command, output table and exit
 
 
-// TODO: Decide if a dot string with an integer should be number of dots or mirror non-positive integers
+// ---------------
+// SECTION: Header
+// ---------------
+#pragma region Header
 
 #include <iostream>
 #include <string>
@@ -15,7 +18,6 @@
 #include <iomanip> // for setw for formatted tables
 
 // Required to extract last modified from files and directories
-// #include <format>
 #include <chrono>
 #include <ctime>
 
@@ -26,7 +28,6 @@
 
 
 #include <regex>
-// #include <cctype>
 
 // If using Windows, include windows.h to detect symlinks
 #ifdef _WIN32
@@ -35,17 +36,28 @@
 
 namespace fs = std::filesystem;
 
+#pragma endregion
 
-// CONSTANTS
+
+// ------------------------
+// SECTION: Constants
+// ------------------------
+#pragma region Constants
+// RegEx Constants
 std::regex COMMA_STRING_REGEX("^\\,([1-9]+[0-9]*|\\,*)$");
 std::regex DOT_STRING_REGEX("^\\.([1-9]+[0-9]*|\\.*)$");
 
-//TODO: this will eventually be made dynamic
-std::string DEFAULT_SHELL = "WACKO";
+const char* DEFAULT_COMMAND = ".";
 
-char separator = fs::path::preferred_separator;
+char separator = fs::path::preferred_separator; // platform specific separator
+#pragma endregion
 
-// CLASSES
+
+
+// -------------------------------
+// SECTION: Interpretation Classes
+// -------------------------------
+#pragma region Interpretation Classes
 
 //Class to represent a date-time
 class datetime
@@ -258,39 +270,14 @@ class ChildItem {
 		
 		
 };
+#pragma endregion
 
-// A simple class for storing column headers & widths
-class Column {
-	private:
-		bool left_bool = true;
-	public:
-		std::string Name;
-		int Width;
-		
-		
-		// Constructor
-		Column(std::string Name) : Name(Name) 
-		{
-			Width = Name.length();
-		}
-		
-		
-		// Change width to the higher of min_width and a number
-		void check_width(int new_width)
-		{
-			if (Width < new_width)
-			{
-				Width = new_width;
-			}
-		}
-		
-		bool LoR () { // Left or right aligned
-			return left_bool;
-		}
-};
 
-// METHODS
 
+// -------------------------------
+// SECTION: Interpretation Methods
+// -------------------------------
+#pragma region Interpretation Methods
 // Check if a directory exists, and optionally make it the CWD
 bool ChkDir(fs::path path, bool _change = false)
 {
@@ -386,6 +373,42 @@ std::string CommaPath(std::string comma_string) {
 std::string DotPath(std::string dot_string) {
 	return CodePath('.', dot_string);
 }
+#pragma endregion
+
+
+// ----------------------
+// SECTION: Table Display
+// ----------------------
+#pragma region Table Display
+// A simple class for storing column headers & widths
+class Column {
+	private:
+		bool left_bool = true;
+	public:
+		std::string Name;
+		int Width;
+		
+		
+		// Constructor
+		Column(std::string Name) : Name(Name) 
+		{
+			Width = Name.length();
+		}
+		
+		
+		// Change width to the higher of min_width and a number
+		void check_width(int new_width)
+		{
+			if (Width < new_width)
+			{
+				Width = new_width;
+			}
+		}
+		
+		bool LoR () { // Left or right aligned
+			return left_bool;
+		}
+};
 
 // Print table to screen
 void print_table(std::vector<ChildItem> children)
@@ -438,11 +461,26 @@ void print_table(std::vector<ChildItem> children)
 		std::cout << std::endl;
 	}
 }
+#pragma endregion
 
 
-// The main course
-int Ennumerate()
-{	
+
+
+// -------------
+// SECTION: Main
+// -------------
+#pragma region Main
+// Global variables
+
+// Reset every time CDLS is run
+int index_count = 0;
+std::vector<ChildItem> children; // array to hold childitems
+
+bool initialised = false; // whether initialisation of above values has happened in order to interpret commands
+
+
+// List the directory, and get directory indices
+extern "C" void LS(bool verbose = true) { // verbose = false allows silent initialisation for command interpretation
 	fs::path path = fs::current_path();
 	std::cout << std::endl << "Directory: " << path.string() << std::endl <<std::endl;
 	
@@ -450,9 +488,9 @@ int Ennumerate()
 	// Get list of child items for the current directory
 	//
 	
-	std::vector<ChildItem> children; // array to hold childitems
+	children = std::vector<ChildItem>(); // array to hold childitems
 	std::vector<ChildItem> child_files; // array to initially hold files
-	int index_count = 0; // counter for indexing directories
+	index_count = 0; // counter for indexing directories
 	
 	// Add . and .. to directory tree
 	ChildItem current_directory("..", -1);
@@ -479,24 +517,16 @@ int Ennumerate()
 	children.insert(children.end(), child_files.begin(), child_files.end());
 	
 	
+	initialised = true; // app is initialised after the first time this function is run, regardless of context
 	
-	
-	
-	
-	// Print table
-	print_table(children);
+	// Print table (if verbose)
+	if (verbose) { print_table(children); }
+}
 
-
-	
-	
-	// Take input
-	std::string input;
-	
-	std::cout << "\n\n(Enter an index, path, dot string, comma string or expression:)\n";
-	
-	std::cout << "CDLS (C++) " << fs::current_path().string() << ">";
-	std::getline(std::cin, input);
-	
+// Interpret an input string, and change CWD
+int Interpret(std::string input = "") {
+	// Check whether app is initialised, and initialise if not
+	if (!initialised) { LS(false); }
 	
 	// Process input
 	if (input == "") { // If blank, return to parent shell
@@ -514,7 +544,7 @@ int Ennumerate()
 			}
 		} else { // Negative integer
 			
-			fs::current_path(DotPath(std::abs(chosen)));
+			fs::current_path(DotPath(std::abs(chosen - 1)));
 		}
 	}
 	catch (std::invalid_argument& e) { // Non-integer argument
@@ -530,30 +560,52 @@ int Ennumerate()
 		}
 	}
 	
-
 	return 0;
 }
 
-
-
-int main(int argc, char* argv[])
-{
-	int retval = 0;
-	
-	// If an argument has been provided, try to change CWD	
-	if (argv[1]) {
-		ChkDir(argv[1], true);
-	}
-	
-	// TODO: Sort this, currently is returning 3 (in python) regardless of whether blank or correct command
-	while (true) {
-		int going = Ennumerate();
-		if (going > 0) { 
-			if (going != 3) { retval = going; }
-			break;
-			}
-		}
-	
-	return retval;
+// Expose interpretation to C interfaces
+extern "C" int Interpret(const char* input) {
+	std::string s = input;
+	int i = Interpret(s);
+	return i;
 }
 
+extern "C" int CDLS(const char* input = DEFAULT_COMMAND) {
+	int result = Interpret(input);
+	LS();
+	
+	return result;
+}
+
+// List directory, take input and interpret it
+int run_it() {
+	// List directory
+	LS();
+	
+	// Display instructions
+	std::cout << "\n\n(Enter an index, path, dot string, comma string or expression:)\n";
+	std::cout << "CDLS (C++) " << fs::current_path().string() << "> ";
+	
+	// Take input
+	std::string input;
+	std::getline(std::cin, input);
+	
+	// Interpret
+	int result = Interpret(input);
+	
+	
+	return result;
+}
+
+// Main function
+int main(int argc, char* argv[]) {
+	while (true) {
+		int result = run_it();
+		if (result == 3) {
+			break;
+		}
+	}
+	
+	return 0;
+}
+#pragma endregion

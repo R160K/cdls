@@ -1,3 +1,5 @@
+!!!THIS IS STILL A WORK IN PROGRESS!!!
+
 This is a simple productivity tool to speed up directory navigation in the command line.
 
 
