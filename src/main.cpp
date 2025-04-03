@@ -7,9 +7,12 @@
 // TODO: Error handling for access denied (CD)
 
 // TODO: Allow sub-paths for dot paths and comma paths - e.g. ,,,/Documents
+// TODO: Allow auto-completion: Doc (or doc) should go to Documents if nothing else starts with Doc
+// TODO: Allowing autocompletion down the tree could be a very powerful tool for this app
 
 // TODO: (Perhaps) Add the ability to uses fzf for auto completion (on Linux)
 // TODO: Create man and cheat pages on Linux, and just general --help/-?
+
 
 // ---------------
 // SECTION: Header
@@ -56,7 +59,7 @@ extern "C" {
 	const std::regex COMMA_STRING_REGEX("^\\,([1-9]+[0-9]*|\\,*)$");
 	const std::regex DOT_STRING_REGEX("^\\.([1-9]+[0-9]*|\\.*)$");
 
-	const std::regex INTEGER_REGEX("^\-?[0-9]+$"); // checks if a string can be an integer
+	const std::regex INTEGER_REGEX("^-?[0-9]+$"); // checks if a string can be an integer
 	
 	const char* DEFAULT_COMMAND = "."; // if no path is specified, certain functions default to the current directory
 	

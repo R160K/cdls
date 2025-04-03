@@ -1,21 +1,16 @@
 !!!THIS IS STILL A WORK IN PROGRESS!!!
 
-This is a simple productivity tool to speed up directory navigation in the command line.
+A simple productivity tool to view and navigate directories quickly.
 
+Still in development. A major part of the program is changing the current working directory, which as a standalone program is pointless in the context of the parent shell. So this is best implemented via wrapper scripts.
 
-It is most effective as a native PowerShell script ./scripts/powershell_native.ps1).
-Also a C++ program (./bin/app.exe).
+This app will list the contents of given directory, with all subdirectories given indices that can be input instead of a name.
 
-The C++ executable is found in ./bin, the PowershellScript is found in ./scripts, the C++ source is found in ./src
-Everything else is still in development and is experimental.
-
-
-The script, when given a directory path (and as the name might suggest), performs cd to the path and then ls (ls -la), adds an index for each directory, then asks for an input command. If no directory is given, defaults to ".".
-
+If launched with args, will run and exit. If run without args, will begin a loop until "" is passed.
 
 Commands:
 
-1. Entering the index of a directory will cdls to that directory (recursive). 0 will resolve to ".". Negative integers will be translated into dot strings and regress backwards up the directory tree.
+1. Entering the index of a directory will cdls to that directory. 0 will resolve to ".". Negative integers will be translated into dot strings and regress backwards up the directory tree.
 
 2. Entering a path (including relative path such as simply the name of a subdirectory in the cwd) will cdls to that path.
 
@@ -25,6 +20,7 @@ Commands:
 4. Comma strings: entering a string of commas will move down the directory tree, from root, by the number of commas minus 1.
 4.1 As with dot strings, a single comma followed by an integer will be interpreted as a string of the specified number of commas.
 
-5. Anything other than an integer, existing path or a comma or dot string will be invoked as a regular command (PowerShell). Will end execution (C++).
+5. Enter a blank command (or exit) to quit back to parent shell.
 
-6. Enter a blank command (or exit) to quit back to parent shell.
+# TODO: It is intended to expand the functionality of this project in many ways noted in the code.
+# ADDENDUM: As one of the major functions of this code is to change the cwd, shell-specific wrappers are an important part of the project.
