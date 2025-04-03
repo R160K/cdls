@@ -1,9 +1,15 @@
 // Compiled shell and platform agnostic core of cdls
 
 
-// TODO: Make it so that cmdline args can be passed
-// TODO: Allow outside callers to run a command, output table and exit
+// TODO: String parsing for "" and \ isn't working (though spaces in args are). Should really be able to evaluate more complex inputs.
+// TODO: Decide if multiple inputs should be accepted, and what the parameters should be
 
+// TODO: Error handling for access denied (CD)
+
+// TODO: Allow sub-paths for dot paths and comma paths - e.g. ,,,/Documents
+
+// TODO: (Perhaps) Add the ability to uses fzf for auto completion (on Linux)
+// TODO: Create man and cheat pages on Linux, and just general --help/-?
 
 // ---------------
 // SECTION: Header
@@ -29,9 +35,11 @@
 
 #include <regex>
 
+
+
 // If using Windows, include windows.h to detect symlinks
 #ifdef _WIN32
-#include <windows.h> // Needed to detect symlinks
+	#include <windows.h> // Needed to detect symlinks on Windows
 #endif
 
 namespace fs = std::filesystem;
@@ -39,17 +47,21 @@ namespace fs = std::filesystem;
 #pragma endregion
 
 
-// ------------------------
+// ------------------
 // SECTION: Constants
-// ------------------------
+// ------------------
 #pragma region Constants
 // RegEx Constants
-std::regex COMMA_STRING_REGEX("^\\,([1-9]+[0-9]*|\\,*)$");
-std::regex DOT_STRING_REGEX("^\\.([1-9]+[0-9]*|\\.*)$");
+extern "C" {
+	const std::regex COMMA_STRING_REGEX("^\\,([1-9]+[0-9]*|\\,*)$");
+	const std::regex DOT_STRING_REGEX("^\\.([1-9]+[0-9]*|\\.*)$");
 
-const char* DEFAULT_COMMAND = ".";
-
-char separator = fs::path::preferred_separator; // platform specific separator
+	const std::regex INTEGER_REGEX("^\-?[0-9]+$"); // checks if a string can be an integer
+	
+	const char* DEFAULT_COMMAND = "."; // if no path is specified, certain functions default to the current directory
+	
+	const char SEPARATOR = fs::path::preferred_separator; // platform specific separator
+}
 #pragma endregion
 
 
@@ -86,16 +98,21 @@ class datetime
 		);
 		
 		// Convert to tm for properties
-		std::tm* localTime = std::localtime(&tt);
+		std::tm localTime;
+		#ifdef _WIN32 // If windows: thread safe solution
+			localtime_s(&localTime, &tt);
+		#else // If unix, thread safe solution
+			localtime_r(&tt, &localTime);
+		#endif
 		
 		
-		Day = localTime->tm_mday;
-		Month = (localTime->tm_mon + 1); // +1 since tm_mon is 0-11
-		Year = (localTime->tm_year + 1900); // +1900 since tm_year is years since 1900
+		Day = localTime.tm_mday;
+		Month = (localTime.tm_mon + 1); // +1 since tm_mon is 0-11
+		Year = (localTime.tm_year + 1900); // +1900 since tm_year is years since 1900
 		
-		Hour = localTime->tm_hour;
-		Minute = localTime->tm_min;
-		Second = localTime->tm_sec;
+		Hour = localTime.tm_hour;
+		Minute = localTime.tm_min;
+		Second = localTime.tm_sec;
 	}
 	
 	std::string OutputString()
@@ -229,7 +246,16 @@ class ChildItem {
 			return getModified().length();
 		}
 		
-		
+		#ifdef _WIN32
+			bool isReparsePoint(const fs::path& path) {
+				DWORD attributes = GetFileAttributesW(path.c_str());
+				if (attributes == INVALID_FILE_ATTRIBUTES) {
+					return false; // Path doesn't exist or error
+				}
+				return (attributes & FILE_ATTRIBUTE_REPARSE_POINT);
+			}
+		#endif
+
 		// Get permissions
 		std::string getMode()
 		{
@@ -238,6 +264,19 @@ class ChildItem {
 			std::string perm_string;
 			if (is_symlink()) {
 				perm_string += "l";
+
+				// Check if symlink is accessible
+				// (e.g. Windows can put symlinks in C:\Users\%USERNAME%\ that are not actually accessible
+				// and will throw an error if you try to access them
+
+				// Try to warn if a Windows symlink is not accessible
+				#ifdef _WIN32
+					if (isReparsePoint(path)) {
+						perm_string += "----------";
+						return perm_string;
+					}
+				#endif // _WIN32
+
 			} else if (is_directory()) {
 				perm_string += "d";
 			} else if (is_regular_file()) {
@@ -270,6 +309,19 @@ class ChildItem {
 		
 		
 };
+
+
+// Class to represent a directory after walking it
+class directory {
+	public:
+		int index_count = 0;
+		std::vector<ChildItem> children;
+
+		void flush() {
+			index_count = 0;
+			children = std::vector<ChildItem>();
+		}
+};
 #pragma endregion
 
 
@@ -278,23 +330,33 @@ class ChildItem {
 // SECTION: Interpretation Methods
 // -------------------------------
 #pragma region Interpretation Methods
-// Check if a directory exists, and optionally make it the CWD
+// Check if directory is valid, and switch cwd to it if desired
 bool ChkDir(fs::path path, bool _change = false)
 {
+	std::cout << "Trying path: " << path << std::endl;
+
 	try {
-        bool _exists = fs::exists(path) && fs::is_directory(path);
+		bool _exists = fs::exists(path) && fs::is_directory(path);
 		if (_exists && _change) { fs::current_path(path); }
-		
+
 		return _exists;
-    }
-    catch (const fs::filesystem_error& e) {
+	}
+	catch (const fs::filesystem_error& e) {
 		std::cerr << "Error: invalid path " << path << std::endl;
-        return false; // Return false if there's an error accessing the path
-    }
+		return false; // Return false if there's an error accessing the path
+	}
 }
 
 
-// Dot-path (needed for Windows)
+// If passed a string, convert to path
+bool ChkDir(std::string path_string, bool _change = false)
+{
+	fs::path path(path_string);
+	return ChkDir(path, _change);
+}
+
+
+// Dot-path
 std::string DotPath(int num_dots)
 {
 	// Return single dot if number of dots is one, or double dots if two
@@ -326,7 +388,7 @@ std::string CommaPath(int num_commas) {
 	size_t pos = 0;
     int count = 0;
     while (pos != std::string::npos && count < num_commas) {
-        pos = cur_path.find(separator, pos + 1);
+        pos = cur_path.find(SEPARATOR, pos + 1);
         if (pos != std::string::npos) count++;
     }
 	
@@ -337,7 +399,7 @@ std::string CommaPath(int num_commas) {
 std::string CodePath(char sought, std::string parse_string) {
 	
 	// Pointer to a function that will parse the resultant integer
-	std::string (*action)(int);
+	std::string (*action)(int) = NULL;
 	
 	// Determine the correct function for pointer action
 	switch(sought) {
@@ -373,6 +435,7 @@ std::string CommaPath(std::string comma_string) {
 std::string DotPath(std::string dot_string) {
 	return CodePath('.', dot_string);
 }
+
 #pragma endregion
 
 
@@ -411,7 +474,7 @@ class Column {
 };
 
 // Print table to screen
-void print_table(std::vector<ChildItem> children)
+void print_table(const directory& dir)
 {
 	std::vector<Column> COL;
 	
@@ -423,7 +486,7 @@ void print_table(std::vector<ChildItem> children)
 	COL.push_back(Column("Permissions"));
 	
 	// Set column widths
-	for (ChildItem kiddo : children)
+	for (ChildItem kiddo : dir.children)
 	{
 		// Reset widths of columns
 		COL[0].check_width(kiddo.lenIndex());
@@ -452,7 +515,7 @@ void print_table(std::vector<ChildItem> children)
 	
 	//TODO: Automate table left/right and function by column
 	// Write table
-	for (ChildItem kiddo : children) {
+	for (ChildItem kiddo : dir.children) {
 		std::cout << std::right << std::setw(COL[0].Width) << kiddo.getIndex() << " ";
 		std::cout << std::left << std::setw(COL[1].Width) << kiddo.getFilename() << " ";
 		std::cout << std::right << std::setw(COL[2].Width) << kiddo.getFilesize() << " ";
@@ -466,46 +529,34 @@ void print_table(std::vector<ChildItem> children)
 
 
 
-// -------------
-// SECTION: Main
-// -------------
-#pragma region Main
-// Global variables
+// -----------------------
+// SECTION: CDLS_LIB Logic
+// -----------------------
+#pragma region CDLS_LIB Logic
+// Walk the directory, order folders before files and assign indices
+void walk_dir(directory &dir, fs::path path = fs::current_path()) { // verbose = false allows silent initialisation for command interpretation
+	//fs::path path = fs::current_path();
 
-// Reset every time CDLS is run
-int index_count = 0;
-std::vector<ChildItem> children; // array to hold childitems
-
-bool initialised = false; // whether initialisation of above values has happened in order to interpret commands
-
-
-// List the directory, and get directory indices
-extern "C" void LS(bool verbose = true) { // verbose = false allows silent initialisation for command interpretation
-	fs::path path = fs::current_path();
-	std::cout << std::endl << "Directory: " << path.string() << std::endl <<std::endl;
-	
 	
 	// Get list of child items for the current directory
 	//
-	
-	children = std::vector<ChildItem>(); // array to hold childitems
+	dir.flush();
 	std::vector<ChildItem> child_files; // array to initially hold files
-	index_count = 0; // counter for indexing directories
 	
 	// Add . and .. to directory tree
 	ChildItem current_directory("..", -1);
 	ChildItem parent_directory(".", 0);
 	
-	children.push_back(current_directory);
-	children.push_back(parent_directory);
+	dir.children.push_back(current_directory);
+	dir.children.push_back(parent_directory);
 	
 	// Loop through child items, add an index to directories and add files at the end
 	for (const auto& entry : fs::directory_iterator(path)) {
 		if (fs::is_directory(entry)) {
-			index_count++;
-			ChildItem newChild(entry.path(), index_count);
+			dir.index_count++;
+			ChildItem newChild(entry.path(), dir.index_count);
 			
-			children.push_back(newChild);
+			dir.children.push_back(newChild);
 		} else if (fs::is_regular_file(entry)) {
 			ChildItem newChild(entry.path());
 			
@@ -514,31 +565,48 @@ extern "C" void LS(bool verbose = true) { // verbose = false allows silent initi
 	}
 	
 	// Add files to end of directories
-	children.insert(children.end(), child_files.begin(), child_files.end());
-	
-	
-	initialised = true; // app is initialised after the first time this function is run, regardless of context
-	
-	// Print table (if verbose)
-	if (verbose) { print_table(children); }
+	dir.children.insert(dir.children.end(), child_files.begin(), child_files.end());
 }
 
+
+// Display the directory using print_table
+void display_dir(const directory& dir, fs::path path = fs::current_path()) {
+	std::cout << std::endl << "Directory: " << path.string() << std::endl << std::endl;
+	print_table(dir);
+}
+
+
+
 // Interpret an input string, and change CWD
-int Interpret(std::string input = "") {
-	// Check whether app is initialised, and initialise if not
-	if (!initialised) { LS(false); }
+int ch_dir(const directory& dir, std::string input = "") {
+	//// Check whether app is initialised, and initialise if not
+	//if (!__initialised) { LS(false); }
 	
 	// Process input
 	if (input == "") { // If blank, return to parent shell
 		return 3; // Asked to exit
 	}
 	
+	fs::path path(input);
+
 	try { // Check for an integer argument
-		int chosen = std::stoi(input);
+		//int chosen = std::stoi(input);
+		int chosen;
+		if (std::regex_match(input, INTEGER_REGEX)) { // input is integer
+			chosen = std::stoi(input);
+		} else { // not an integer
+			throw std::invalid_argument("Not an integer.");
+		}
 		
 		if (chosen >= 0) { // Non-negative integer
-			if (chosen <= index_count) { // In range
-				fs::current_path(children[chosen + 1].path);
+			if (chosen <= dir.index_count) { // In range
+				try {
+					fs::current_path(dir.children[chosen + 1].path);
+				}
+				catch (const fs::filesystem_error& e) { // Access to the specified directory is denied
+					std::cout << "Nope!" << std::endl;
+					std::cerr << "Filesystem Error: Access to the specified directory is denied." << std::endl;
+				}
 			} else { // Out of range
 				throw std::invalid_argument("Out of range.");
 			}
@@ -562,45 +630,148 @@ int Interpret(std::string input = "") {
 	
 	return 0;
 }
+#pragma endregion
 
-// Expose interpretation to C interfaces
-extern "C" int Interpret(const char* input) {
+// -----------------------------------
+// SECTION: CDLS_LIB Exposed Functions
+// -----------------------------------
+#pragma region CDLS_LIB Exposed Functions
+
+// Templates to automate overloading
+
+
+// Interpret command and change directory
+int CD(directory& dir, const std::string input = ".") {
+	// Walk the directory
+	walk_dir(dir);
+	// Interpret the input
+	return ch_dir(dir, input);
+}
+
+int CD(const std::string input = ".") {
+	directory dir;
+	return CD(dir, input);
+}
+
+int CD(directory& dir, const char* input = DEFAULT_COMMAND) {
+	// Convert to string
 	std::string s = input;
-	int i = Interpret(s);
-	return i;
+	return CD(dir, s);
+}
+
+// Expose interpretation to C interfaces using C-style string inputs
+extern "C" int CD(const char* input = DEFAULT_COMMAND) {
+	// Create directory object
+	directory dir;
+
+	// Pass it to CD
+	return CD(dir, input);
+}
+
+// Walk the current directory and display it
+void LS(directory& dir) {
+	walk_dir(dir);
+	display_dir(dir);
+}
+
+extern "C" void LS() {
+	directory dir;
+}
+
+// Populate the list, evaluate input, change directory and display result - the whole shebang
+int CDLS(directory& dir, const std::string input = ".") {
+	int retval = CD(dir, input);
+	LS(dir);
+
+	return retval;
+}
+
+int CDLS(const std::string input = ".") {
+	directory dir;
+	return CDLS(dir, input);
+}
+
+int CDLS(directory& dir, const char* input = DEFAULT_COMMAND) {
+	// Convert to string
+	std::string s = input;
+	return CDLS(dir, s);
 }
 
 extern "C" int CDLS(const char* input = DEFAULT_COMMAND) {
-	int result = Interpret(input);
-	LS();
-	
-	return result;
+	directory dir;
+	return CDLS(dir, input);
 }
 
+
+// Process multiple inputs (i.e. command line args)
+int CDLS(directory& dir, int argc, char* argv[]) {
+	int retval = 0;
+
+	// Check if there are any arguments
+	if (argc > 1) {
+		// If there are arguments, interpret them
+		for (int i = 1; i < argc; i++) {
+			retval = CD(argv[i]);
+			dir.flush();
+
+			if (retval != 0) {
+				LS(dir);
+				return retval;
+			}
+		}
+
+		LS(dir);
+		std::cout << std::endl;
+
+	}
+
+	return 0;
+}
+#pragma	endregion
+
+
+#ifndef BUILDING_SHARED
+// -------------
+// SECTION: Main
+// -------------
+#pragma region Main
 // List directory, take input and interpret it
-int run_it() {
+int run_it(directory& dir) {
 	// List directory
-	LS();
-	
+	LS(dir);
+
 	// Display instructions
 	std::cout << "\n\n(Enter an index, path, dot string, comma string or expression:)\n";
 	std::cout << "CDLS (C++) " << fs::current_path().string() << "> ";
-	
+
 	// Take input
 	std::string input;
 	std::getline(std::cin, input);
-	
+
 	// Interpret
-	int result = Interpret(input);
-	
-	
+	const char* cstr = input.c_str();
+	int result = CD(dir, cstr);
+
 	return result;
 }
 
+int run_it() {
+	directory dir;
+	return run_it(dir);
+}
+
 // Main function
-int main(int argc, char* argv[]) {
+int main_real(int argc, char* argv[]) {
+	directory dir;
+
+	// If there are command line arguments, interpret them
+	if (argc > 1) {
+		return CDLS(dir, argc, argv);
+	}
+
+	// Else run the main loop
 	while (true) {
-		int result = run_it();
+		int result = run_it(dir);
 		if (result == 3) {
 			break;
 		}
@@ -608,4 +779,15 @@ int main(int argc, char* argv[]) {
 	
 	return 0;
 }
+
+// Test function
+int main_test(int argc, char* argv[]) {
+	return 0;
+}
+
+int main(int argc, char* argv[]) {
+	return main_real(argc, argv);
+}
+
 #pragma endregion
+#endif
