@@ -1,12 +1,10 @@
 // Compiled shell and platform agnostic core of cdls
 
-
-// TODO: String parsing for "" and \ isn't working (though spaces in args are). Should really be able to evaluate more complex inputs.
-// TODO: Decide if multiple inputs should be accepted, and what the parameters should be
-
 // TODO: Error handling for access denied (CD)
 
-// TODO: Allow sub-paths for dot paths and comma paths - e.g. ,,,/Documents
+// TODO: Find out why case sensitive check isn't working
+
+// TODO: Allow sub-paths for dot paths and comma paths - e.g. ,,,/Documents .3/Folder
 // TODO: Allow auto-completion: Doc (or doc) should go to Documents if nothing else starts with Doc
 // TODO: Allowing autocompletion down the tree could be a very powerful tool for this app
 
@@ -39,6 +37,8 @@
 #include <regex>
 
 
+#include <algorithm> // for std::transform
+#include <cctype>    // for std::tolower
 
 // If using Windows, include windows.h to detect symlinks
 #ifdef _WIN32
@@ -336,8 +336,6 @@ class directory {
 // Check if directory is valid, and switch cwd to it if desired
 bool ChkDir(fs::path path, bool _change = false)
 {
-	std::cout << "Trying path: " << path << std::endl;
-
 	try {
 		bool _exists = fs::exists(path) && fs::is_directory(path);
 		if (_exists && _change) { fs::current_path(path); }
@@ -439,6 +437,36 @@ std::string DotPath(std::string dot_string) {
 	return CodePath('.', dot_string);
 }
 
+// Function that checks if a directory starts with a string, first case sensitive, then case insensitive
+int shorthand(directory& dir, std::string str) {
+	// Try and find a directory that starts with the string in a case-sensitive manner
+	for (int i = 0; i < dir.index_count; i++) {
+		std::string dir_name = dir.children[i + 2].getFilename();
+		if (dir_name.starts_with(str)) {
+			ChkDir(dir_name, true);
+			return 0;
+		}
+		else if (dir_name > str) {
+			break; // Stop searching if the filename is greater than the string
+		}
+	}
+
+	// Case insensitive search
+	for (int i = 0; i < dir.index_count; i++) {
+		std::string dir_name = dir.children[i + 2].getFilename();
+		std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::tolower(c); });
+		std::transform(dir_name.begin(), dir_name.end(), dir_name.begin(), [](unsigned char c) { return std::tolower(c); });
+		if (dir_name.starts_with(str)) {
+			ChkDir(dir_name, true);
+			return 0;
+		}
+		else if (dir_name> str) {
+			break; // Stop searching if the filename is greater than the string
+		}
+	}
+
+	return 1;
+}
 #pragma endregion
 
 
@@ -581,7 +609,7 @@ void display_dir(const directory& dir, fs::path path = fs::current_path()) {
 
 
 // Interpret an input string, and change CWD
-int ch_dir(const directory& dir, std::string input = "") {
+int ch_dir(directory& dir, std::string input = "") {
 	//// Check whether app is initialised, and initialise if not
 	//if (!__initialised) { LS(false); }
 	
@@ -626,8 +654,8 @@ int ch_dir(const directory& dir, std::string input = "") {
 		} else if (ChkDir(input)) {
 			fs::current_path(input);
 		} else { // Invalid cdls input, pass to shell
-			std::cout << input << std::endl;
-			return 1; // Invalid shell argument
+			int retval = shorthand(dir, input);
+			return retval;
 		}
 	}
 	

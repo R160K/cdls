@@ -1,18 +1,14 @@
 // Compiled shell and platform agnostic core of cdls
 
-
-// TODO: FIRST, AND FOREMOST, FIX PROCESSING SINGLE ENTRIES (OF DIRECTORIES) THAT CONTAIN A SPACE
-// CHKDIR FUNCTION IS NOT WORKING PROPERLY
-
-
-// TODO: Parse string input for CDLS and split into args for CD
-// TODO: Update Split_String so that it actually parses into arguments rather than just splitting by whitespace (i.e. respects quotation marks and escape characters).
-
 // TODO: Error handling for access denied (CD)
-// TODO: Process streams (sstream, filestream) as arguments
 
+// TODO: Allow sub-paths for dot paths and comma paths - e.g. ,,,/Documents .3/Folder
+// TODO: Allow auto-completion: Doc (or doc) should go to Documents if nothing else starts with Doc
+// TODO: Allowing autocompletion down the tree could be a very powerful tool for this app
 
-// TODO: Add the ability to uses fzf for auto completion
+// TODO: (Perhaps) Add the ability to uses fzf for auto completion (on Linux)
+// TODO: Create man and cheat pages on Linux, and just general --help/-?
+
 
 // ---------------
 // SECTION: Header
@@ -59,7 +55,7 @@ extern "C" {
 	const std::regex COMMA_STRING_REGEX("^\\,([1-9]+[0-9]*|\\,*)$");
 	const std::regex DOT_STRING_REGEX("^\\.([1-9]+[0-9]*|\\.*)$");
 
-	const std::regex INTEGER_REGEX("^\-?[0-9]+$"); // checks if a string can be an integer
+	const std::regex INTEGER_REGEX("^-?[0-9]+$"); // checks if a string can be an integer
 	
 	const char* DEFAULT_COMMAND = "."; // if no path is specified, certain functions default to the current directory
 	
@@ -333,23 +329,7 @@ class directory {
 // SECTION: Interpretation Methods
 // -------------------------------
 #pragma region Interpretation Methods
-// Check if a directory exists, and optionally make it the CWD
-// TODO: The problem here is that even when the arg is passed properly, it's not interpreted properly
-bool ChkDir(std::string path_string, bool _change = false)
-{
-	fs::path path(path_string);
-	try {
-        bool _exists = fs::exists(path) && fs::is_directory(path);
-		if (_exists && _change) { fs::current_path(path); }
-		
-		return _exists;
-    }
-    catch (const fs::filesystem_error& e) {
-		std::cerr << "Error: invalid path " << path << std::endl;
-        return false; // Return false if there's an error accessing the path
-    }
-}
-
+// Check if directory is valid, and switch cwd to it if desired
 bool ChkDir(fs::path path, bool _change = false)
 {
 	try {
@@ -365,7 +345,15 @@ bool ChkDir(fs::path path, bool _change = false)
 }
 
 
-// Dot-path (needed for Windows)
+// If passed a string, convert to path
+bool ChkDir(std::string path_string, bool _change = false)
+{
+	fs::path path(path_string);
+	return ChkDir(path, _change);
+}
+
+
+// Dot-path
 std::string DotPath(int num_dots)
 {
 	// Return single dot if number of dots is one, or double dots if two
@@ -445,6 +433,14 @@ std::string DotPath(std::string dot_string) {
 	return CodePath('.', dot_string);
 }
 
+int starts_with(directory& dir, const std::string str) {
+	// Try and find a directory that starts with the string in a case-sensitive manner
+	for (int i = 0; i < dir.index_count; i++) {
+		std::cout << "HAAAH " << dir.children[i + 2].getFilename() << std::endl;
+	}
+
+	return 0;
+}
 #pragma endregion
 
 
@@ -632,6 +628,7 @@ int ch_dir(const directory& dir, std::string input = "") {
 		} else if (ChkDir(input)) {
 			fs::current_path(input);
 		} else { // Invalid cdls input, pass to shell
+			// starts_with(dir, input);
 			std::cout << input << std::endl;
 			return 1; // Invalid shell argument
 		}
@@ -645,14 +642,27 @@ int ch_dir(const directory& dir, std::string input = "") {
 // SECTION: CDLS_LIB Exposed Functions
 // -----------------------------------
 #pragma region CDLS_LIB Exposed Functions
+
+// Templates to automate overloading
+
+
 // Interpret command and change directory
-int CD(directory& dir, const char* input = DEFAULT_COMMAND) {
+int CD(directory& dir, const std::string input = ".") {
 	// Walk the directory
 	walk_dir(dir);
 	// Interpret the input
+	return ch_dir(dir, input);
+}
+
+int CD(const std::string input = ".") {
+	directory dir;
+	return CD(dir, input);
+}
+
+int CD(directory& dir, const char* input = DEFAULT_COMMAND) {
+	// Convert to string
 	std::string s = input;
-	int i = ch_dir(dir, s);
-	return i;
+	return CD(dir, s);
 }
 
 // Expose interpretation to C interfaces using C-style string inputs
@@ -674,11 +684,23 @@ extern "C" void LS() {
 	directory dir;
 }
 
-int CDLS(directory& dir, const char* input = DEFAULT_COMMAND) {
+// Populate the list, evaluate input, change directory and display result - the whole shebang
+int CDLS(directory& dir, const std::string input = ".") {
 	int retval = CD(dir, input);
 	LS(dir);
 
 	return retval;
+}
+
+int CDLS(const std::string input = ".") {
+	directory dir;
+	return CDLS(dir, input);
+}
+
+int CDLS(directory& dir, const char* input = DEFAULT_COMMAND) {
+	// Convert to string
+	std::string s = input;
+	return CDLS(dir, s);
 }
 
 extern "C" int CDLS(const char* input = DEFAULT_COMMAND) {
