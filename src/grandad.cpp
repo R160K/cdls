@@ -1,8 +1,13 @@
 // Compiled shell and platform agnostic core of cdls
 
+// TODO: Make sure 
+
 // TODO: Error handling for access denied (CD)
 
+// TODO: Find out why case sensitive check isn't working
+
 // TODO: Allow sub-paths for dot paths and comma paths - e.g. ,,,/Documents .3/Folder
+// TODO: Allow auto-completion: Doc (or doc) should go to Documents if nothing else starts with Doc
 // TODO: Allowing autocompletion down the tree could be a very powerful tool for this app
 
 // TODO: (Perhaps) Add the ability to uses fzf for auto completion (on Linux)
@@ -336,20 +341,7 @@ bool ChkDir(fs::path path, bool _change = false)
 {
 	try {
 		bool _exists = fs::exists(path) && fs::is_directory(path);
-		if (_exists && _change) { 
-			try {
-				fs::current_path(path);
-			}
-			catch (const fs::filesystem_error& e) { // Access to the specified directory is denied
-				std::cerr << "Filesystem Error: Access to the specified directory is denied." << std::endl;
-			}
-			catch (const std::exception& e) { // Other errors
-				std::cerr << "Error: " << e.what() << std::endl;
-			}
-			catch (...) { // Catch-all for any other errors
-				std::cerr << "Unknown error occurred." << std::endl;
-			}
-		}
+		if (_exists && _change) { fs::current_path(path); }
 
 		return _exists;
 	}
@@ -677,12 +669,12 @@ int ch_dir(directory& dir, std::string input = "") {
 		} else if (std::regex_match(input, COMMA_STRING_REGEX)) { // Is comma string
 			fs::current_path(CommaPath(input));
 		} else if (ChkDir(input)) {
-			try {
+			//try {
 				fs::current_path(input);
-			}
-			catch (const fs::filesystem_error& e) { // Access to the specified directory is denied
-				std::cerr << "Filesystem Error: Access to the specified directory is denied." << std::endl;
-			}
+			//}
+			//catch (const fs::filesystem_error& e) { // Access to the specified directory is denied
+			//	std::cerr << "Filesystem Error: Access to the specified directory is denied." << std::endl;
+			//}
 			// fs::current_path(input);
 		} else { // No direct match, try partial match (shorthand
 			int sh = shorthand(dir, input);
@@ -831,7 +823,7 @@ int run_it() {
 }
 
 // Main function
-int main_real(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
 	directory dir;
 
 	// If there are command line arguments, interpret them
@@ -848,19 +840,6 @@ int main_real(int argc, char* argv[]) {
 	}
 	
 	return 0;
-}
-
-
-int main(int argc, char* argv[]) {
-	try {
-		return main_real(argc, argv);
-	}
-	catch (const std::exception& e) {
-		std::cerr << "Uncaught error: " << e.what() << std::endl;
-		std::cerr << "Exiting..." << std::endl;
-		return 1;
-	}
-	// return main_real(argc, argv);
 }
 
 #pragma endregion

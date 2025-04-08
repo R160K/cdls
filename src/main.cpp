@@ -2,15 +2,13 @@
 
 // TODO: Error handling for access denied (CD)
 
-// TODO: Find out why case sensitive check isn't working
-
 // TODO: Allow sub-paths for dot paths and comma paths - e.g. ,,,/Documents .3/Folder
-// TODO: Allow auto-completion: Doc (or doc) should go to Documents if nothing else starts with Doc
 // TODO: Allowing autocompletion down the tree could be a very powerful tool for this app
 
 // TODO: (Perhaps) Add the ability to uses fzf for auto completion (on Linux)
 // TODO: Create man and cheat pages on Linux, and just general --help/-?
 
+// TODO: Try and fix auto-complete function (shorthand) so that it breaks when alphabetically greater than the string (not working currently, so commented out)
 
 // ---------------
 // SECTION: Header
@@ -275,7 +273,7 @@ class ChildItem {
 				// Try to warn if a Windows symlink is not accessible
 				#ifdef _WIN32
 					if (isReparsePoint(path)) {
-						perm_string += "----------";
+						perm_string += "---------";
 						return perm_string;
 					}
 				#endif // _WIN32
@@ -338,7 +336,20 @@ bool ChkDir(fs::path path, bool _change = false)
 {
 	try {
 		bool _exists = fs::exists(path) && fs::is_directory(path);
-		if (_exists && _change) { fs::current_path(path); }
+		if (_exists && _change) { 
+			try {
+				fs::current_path(path);
+			}
+			catch (const fs::filesystem_error& e) { // Access to the specified directory is denied
+				std::cerr << "Filesystem Error: Access to the specified directory is denied." << std::endl;
+			}
+			catch (const std::exception& e) { // Other errors
+				std::cerr << "Error: " << e.what() << std::endl;
+			}
+			catch (...) { // Catch-all for any other errors
+				std::cerr << "Unknown error occurred." << std::endl;
+			}
+		}
 
 		return _exists;
 	}
@@ -362,71 +373,71 @@ std::string DotPath(int num_dots)
 {
 	// Return single dot if number of dots is one, or double dots if two
 	if (num_dots == 1) { return "."; }
-	
+
 	//Reduce number of dots by one to get correct number of array elements
 	num_dots--;
 	std::vector<std::string> dots(num_dots, "..");
-	
+
 	// Join with "/"
-    std::string result = dots[0];
-    for (int i = 1; i < num_dots; i++) {
-        result += "/" + dots[i];
-    }
-	
+	std::string result = dots[0];
+	for (int i = 1; i < num_dots; i++) {
+		result += "/" + dots[i];
+	}
+
 	return result;
 }
 
 // Comma string
 std::string CommaPath(int num_commas) {
-	
+
 	// If 0 or 1, return the root directory
 	if (num_commas == 0 || num_commas == 1) {
 		return fs::current_path().root_path().string();
 	}
-	
+
 	std::string cur_path = fs::current_path().string();
-	
+
 	size_t pos = 0;
-    int count = 0;
-    while (pos != std::string::npos && count < num_commas) {
-        pos = cur_path.find(SEPARATOR, pos + 1);
-        if (pos != std::string::npos) count++;
-    }
-	
+	int count = 0;
+	while (pos != std::string::npos && count < num_commas) {
+		pos = cur_path.find(SEPARATOR, pos + 1);
+		if (pos != std::string::npos) count++;
+	}
+
 	return (count == num_commas) ? cur_path.substr(0, pos) : cur_path;
 }
 
 
 std::string CodePath(char sought, std::string parse_string) {
-	
+
 	// Pointer to a function that will parse the resultant integer
-	std::string (*action)(int) = NULL;
-	
+	std::string(*action)(int) = NULL;
+
 	// Determine the correct function for pointer action
-	switch(sought) {
-		case '.':
-			 action = DotPath;
-			break;
-		case ',':
-			action = CommaPath;
-			break;
+	switch (sought) {
+	case '.':
+		action = DotPath;
+		break;
+	case ',':
+		action = CommaPath;
+		break;
 	}
-	
-    // Case 1: Only dots (e.g., ".....")
-    if (parse_string.find_first_not_of(sought) == std::string::npos) {
-        return action(parse_string.length());  // Return the number of dots
-    }
 
-    // Case 2: A dot followed by an integer (e.g., ".123")
-    if (parse_string[0] == sought && parse_string.length() > 1) {
-        std::string numberPart = parse_string.substr(1);
-        if (numberPart.find_first_not_of("0123456789") == std::string::npos) {
-            return action(std::stoi(numberPart));  // Convert the number part to an integer
-        }
-    }
+	// Case 1: Only dots (e.g., ".....")
+	if (parse_string.find_first_not_of(sought) == std::string::npos) {
+		return action(parse_string.length());  // Return the number of dots
+	}
 
-    // Invalid input case
-    throw std::invalid_argument("Invalid input format");
+	// Case 2: A dot followed by an integer (e.g., ".123")
+	if (parse_string[0] == sought && parse_string.length() > 1) {
+		std::string numberPart = parse_string.substr(1);
+		if (numberPart.find_first_not_of("0123456789") == std::string::npos) {
+			return action(std::stoi(numberPart));  // Convert the number part to an integer
+		}
+	}
+
+	// Invalid input case
+	throw std::invalid_argument("Invalid input format");
 }
 
 std::string CommaPath(std::string comma_string) {
@@ -437,35 +448,50 @@ std::string DotPath(std::string dot_string) {
 	return CodePath('.', dot_string);
 }
 
+
+
+// Function to convert a string to lowercase
+std::string to_lowercase(const std::string& input) {
+	std::string result = input;
+	std::transform(result.begin(), result.end(), result.begin(),
+		[](unsigned char c) { return std::tolower(c); });
+	return result;
+}
+
 // Function that checks if a directory starts with a string, first case sensitive, then case insensitive
+// and passes the index of the directory back. Returns 0 if not found.
 int shorthand(directory& dir, std::string str) {
+#ifndef _WIN32
+	// Directory names on Windows are case-insensitive, and child items in a directory are ordered differently than on Linux.
+	// As names are case-insensitive anyways, we can skip this step on Windows.
+
 	// Try and find a directory that starts with the string in a case-sensitive manner
 	for (int i = 0; i < dir.index_count; i++) {
 		std::string dir_name = dir.children[i + 2].getFilename();
 		if (dir_name.starts_with(str)) {
-			ChkDir(dir_name, true);
-			return 0;
+			return i + 1;
 		}
-		else if (dir_name > str) {
-			break; // Stop searching if the filename is greater than the string
-		}
+		//else if (dir_name > str) {
+		//	break; // Stop searching if the filename is greater than the string
+		//}
 	}
+#endif
 
 	// Case insensitive search
+	str = to_lowercase(str); // Convert string to lowercase
 	for (int i = 0; i < dir.index_count; i++) {
-		std::string dir_name = dir.children[i + 2].getFilename();
-		std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::tolower(c); });
-		std::transform(dir_name.begin(), dir_name.end(), dir_name.begin(), [](unsigned char c) { return std::tolower(c); });
+		// Get relevant directory name and convert to lowercase
+		std::string dir_name = to_lowercase(dir.children[i + 2].getFilename());
+
 		if (dir_name.starts_with(str)) {
-			ChkDir(dir_name, true);
-			return 0;
+			return i + 1;
 		}
-		else if (dir_name> str) {
-			break; // Stop searching if the filename is greater than the string
-		}
+		//else if (dir_name > str) {
+		//	break; // Stop searching if the filename is greater than the string
+		//}
 	}
 
-	return 1;
+	return 0;
 }
 #pragma endregion
 
@@ -582,17 +608,29 @@ void walk_dir(directory &dir, fs::path path = fs::current_path()) { // verbose =
 	dir.children.push_back(parent_directory);
 	
 	// Loop through child items, add an index to directories and add files at the end
-	for (const auto& entry : fs::directory_iterator(path)) {
-		if (fs::is_directory(entry)) {
-			dir.index_count++;
-			ChildItem newChild(entry.path(), dir.index_count);
-			
-			dir.children.push_back(newChild);
-		} else if (fs::is_regular_file(entry)) {
-			ChildItem newChild(entry.path());
-			
-			child_files.push_back(newChild);
+	try {
+		for (const auto& entry : fs::directory_iterator(path)) {
+			try {
+				if (fs::is_directory(entry)) {
+					dir.index_count++;
+					ChildItem newChild(entry.path(), dir.index_count);
+					dir.children.push_back(newChild);
+				}
+				else if (fs::is_regular_file(entry)) {
+					ChildItem newChild(entry.path());
+					child_files.push_back(newChild);
+				}
+			}
+			catch (const fs::filesystem_error& e) {
+				std::cerr << "Warning: Skipping inaccessible entry '" << entry.path().string()
+					<< "': " << e.what() << std::endl;
+				continue; // Skip this entry and move to the next
+			}
 		}
+	}
+	catch (const fs::filesystem_error& e) {
+		std::cerr << "Error: Cannot iterate directory '" << path.string()
+			<< "': " << e.what() << std::endl;
 	}
 	
 	// Add files to end of directories
@@ -610,8 +648,6 @@ void display_dir(const directory& dir, fs::path path = fs::current_path()) {
 
 // Interpret an input string, and change CWD
 int ch_dir(directory& dir, std::string input = "") {
-	//// Check whether app is initialised, and initialise if not
-	//if (!__initialised) { LS(false); }
 	
 	// Process input
 	if (input == "") { // If blank, return to parent shell
@@ -635,7 +671,6 @@ int ch_dir(directory& dir, std::string input = "") {
 					fs::current_path(dir.children[chosen + 1].path);
 				}
 				catch (const fs::filesystem_error& e) { // Access to the specified directory is denied
-					std::cout << "Nope!" << std::endl;
 					std::cerr << "Filesystem Error: Access to the specified directory is denied." << std::endl;
 				}
 			} else { // Out of range
@@ -652,10 +687,23 @@ int ch_dir(directory& dir, std::string input = "") {
 		} else if (std::regex_match(input, COMMA_STRING_REGEX)) { // Is comma string
 			fs::current_path(CommaPath(input));
 		} else if (ChkDir(input)) {
-			fs::current_path(input);
-		} else { // Invalid cdls input, pass to shell
-			int retval = shorthand(dir, input);
-			return retval;
+			try {
+				fs::current_path(input);
+			}
+			catch (const fs::filesystem_error& e) { // Access to the specified directory is denied
+				std::cerr << "Filesystem Error: Access to the specified directory is denied." << std::endl;
+			}
+			// fs::current_path(input);
+		} else { // No direct match, try partial match (shorthand
+			int sh = shorthand(dir, input);
+			if (sh > 0) {
+				fs::current_path(dir.children[sh + 1].path);
+				return 0;
+			}
+			else {
+				std::cerr << "Invalid input: " << input << std::endl;
+				return 1;
+			}
 		}
 	}
 	
@@ -781,6 +829,7 @@ int run_it(directory& dir) {
 
 	// Interpret
 	const char* cstr = input.c_str();
+
 	int result = CD(dir, cstr);
 
 	return result;
@@ -811,13 +860,9 @@ int main_real(int argc, char* argv[]) {
 	return 0;
 }
 
-// Test function
-int main_test(int argc, char* argv[]) {
-	return 0;
-}
 
 int main(int argc, char* argv[]) {
-	return main_real(argc, argv);
+	 return main_real(argc, argv);
 }
 
 #pragma endregion
