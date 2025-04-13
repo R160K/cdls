@@ -22,5 +22,5 @@ Commands:
 
 6. Enter a blank command (or exit) to quit back to parent shell.
 
-# TODO: It is intended to expand the functionality of this project in many ways noted in the code.
-# ADDENDUM: As one of the major functions of this code is to change the cwd, shell-specific wrappers are an important part of the project.
+
+ADDENDUM: As one of the major functions of this code is to change the cwd, shell-specific wrappers are an important part of the project.
