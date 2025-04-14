@@ -52,4 +52,4 @@ def CD(command = DEFAULT_COMMAND):
 def CDLS(command = DEFAULT_COMMAND):
     command = to_bytes(command)
     
-    clib.CDLS(command, verbose)
+    clib.CDLS(command)
