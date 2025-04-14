@@ -1,12 +1,18 @@
 #Python wrapper for cdls
 
-# TODO: Add dict of constants
+# TODO: Make a function to point this at a specific library file
+# Right now assumes is being run in own directory
 
 import ctypes
 import os
 
-# TODO: amend this to point to correct location (perhaps change during build/install process
-ADJUSTMENT = "../../bin/cdls_lib.dll"
+if os.name == "nt":
+    # Running on Windows
+    ADJUSTMENT = "../../bin/cdls_lib.dll"
+else:
+    # Assume is running on UNIX
+    ADJUSTMENT = "../../bin/cdls_lib.so"
+    
 lib_path = os.path.join(os.getcwd(), ADJUSTMENT)
 # Import DLL
 clib = ctypes.CDLL(lib_path)
