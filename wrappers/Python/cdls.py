@@ -6,14 +6,17 @@
 import ctypes
 import os
 
+CDLS_LIB_PATH_WIN = "C:/Users/Owner/Documents/Programming/cdls/bin/cdls_lib.dll"
+CDLS_LIB_PATH_UNIX = "~/Programming/cdls/bin/cdls_lib.so"
+
 if os.name == "nt":
     # Running on Windows
-    ADJUSTMENT = "../../bin/cdls_lib.dll"
+    lib_path = CDLS_LIB_PATH_WIN
 else:
     # Assume is running on UNIX
-    ADJUSTMENT = "../../bin/cdls_lib.so"
+    lib_path = CDLS_LIB_PATH_UNIX
     
-lib_path = os.path.join(os.getcwd(), ADJUSTMENT)
+#lib_path = os.path.join(os.getcwd(), ADJUSTMENT)
 # Import DLL
 clib = ctypes.CDLL(lib_path)
 
