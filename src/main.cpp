@@ -755,6 +755,10 @@ void LS(directory& dir) {
 
 extern "C" void LS() {
 	directory dir;
+
+	std::cout << "Hello!" << std::endl;
+
+	LS(dir);
 }
 
 // Populate the list, evaluate input, change directory and display result - the whole shebang

@@ -1,16 +1,13 @@
-As the purpose of this program is to change the current working directory, it requires wrappers for each shell
-in order to function properly.
+PRINCIPLES:
 
-Installation will need to:
+1. Build project
 
-1.	(OPTIONAL) Build from source. May be skippable for distrobution.
+2. Copy cdls_ex.exe, cdls_lib.dll to a folder and add to system PATH ("C:\Program Files\cdls")
 
-2.	Install binaries (cdls.exe and CDLS_LIB.dll/CDLS_LIB.so) to appropriate folders.
-	C:\Program Files\cdls on Windows, /bin/cdls on Linux.
-	
-3.	Add cdls binaries to PATH.
+3. Copy python and powershell wrappers ("C:\Program Files\cdls\wrappers")
 
-4.	Add functions to $profile equivalents for each shell.
+4. Add python wrapper path to PYTHONPATH env variable
 
-5.	Installer should contain all necessary files as resources, ask relevant questions during installation,
-	(on Windows) add to Add/Remove Programs (Registry), include uninstaller.
+5. Import powershell wrapper into global powershell profile
+
+6. Undo all these on uninstall

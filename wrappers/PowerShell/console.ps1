@@ -1,4 +1,6 @@
-﻿# TODO: Allow PS commands to be input if not resolved as CDLS
+﻿# TODO: Make this accept multiple commandline args
+
+# TODO: Allow PS commands to be input if not resolved as CDLS
 
 function cdls {
 
@@ -24,7 +26,7 @@ function cdls {
 		}
 		
 		
-		$output = & cdls.exe $Inputs
+		$output = & cdls_ex.exe $Inputs
 		echo $output
 
 		$directory_line = echo $output | Select-String -Pattern "Directory: "

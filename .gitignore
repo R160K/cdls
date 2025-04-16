@@ -2,3 +2,7 @@ bin/cdls.exe
 bin/cdls_lib.dll
 bin/cdls.bin
 bin/cdls_lib.so
+INSTALL.txt
+make.ps1
+install.ps1
+uninstall.ps1

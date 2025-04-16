@@ -3,20 +3,27 @@
 # TODO: Make a function to point this at a specific library file
 # Right now assumes is being run in own directory
 
+# TODO: A debug option (uses cdls_lib in ../../bin)
+
+# TODO: Add a config file that specifies install location (in same location as this script)
+
+# TODO: Add version checking information (possibly?)
+
 import ctypes
 import os
 
-CDLS_LIB_PATH_WIN = "C:/Users/Owner/Documents/Programming/cdls/bin/cdls_lib.dll"
-CDLS_LIB_PATH_UNIX = "~/Programming/cdls/bin/cdls_lib.so"
+
+# Set lib_path
+lib_path = ""
 
 if os.name == "nt":
     # Running on Windows
-    lib_path = CDLS_LIB_PATH_WIN
+    lib_path = r"C:\Program Files\cdls\cdls_lib.dll"     
 else:
     # Assume is running on UNIX
-    lib_path = CDLS_LIB_PATH_UNIX
-    
-#lib_path = os.path.join(os.getcwd(), ADJUSTMENT)
+    lib_path = r"/lib/cdls_lib.so"
+
+
 # Import DLL
 clib = ctypes.CDLL(lib_path)
 
@@ -24,9 +31,10 @@ clib = ctypes.CDLL(lib_path)
 #Constants
 DEFAULT_COMMAND = ctypes.c_char_p.in_dll(clib, "DEFAULT_COMMAND").value
 
+
 # Get input and output types set up
 clib.LS.argtypes = []
-clib.LS.restype = ctypes.c_int
+clib.LS.restype = None
 
 clib.CD.argtypes = [ctypes.c_char_p]
 clib.CD.restype = ctypes.c_int
@@ -50,9 +58,9 @@ def LS():
 
 def CD(command = DEFAULT_COMMAND):
     command = to_bytes(command)
-    clib.CD(command)
+    return clib.CD(command)
 
 def CDLS(command = DEFAULT_COMMAND):
     command = to_bytes(command)
     
-    clib.CDLS(command)
+    return clib.CDLS(command)
