@@ -6,6 +6,14 @@ This app will list the contents of given directory, with all subdirectories give
 
 If launched with args, will run and exit. If run without args, will begin a loop until "" is passed.
 
+Usage:
+	cdls[_ex] [option] [command1] [command2] ... [commandN]
+	
+Options:
+	-h : Displays help.
+	-v : Displays the current version.
+	-w : Wrapper-mode; presents output in a way that is easier for wrapper scripts to read.
+
 Commands:
 
 1. Entering the index of a directory will cdls to that directory. 0 will resolve to ".". Negative integers will be translated into dot strings and regress backwards up the directory tree.
