@@ -52,22 +52,17 @@ namespace fs = std::filesystem;
 // SECTION: Constants
 // ------------------
 #pragma region Constants
+// RegEx Constants
 extern "C" {
-#ifndef APP_VERSION
-#define APP_VERSION "1.1.0"
-#endif
-	const char* VERSION = APP_VERSION;
-
-	const char* DEFAULT_COMMAND = "."; // if no path is specified, certain functions default to the current directory
-	const char SEPARATOR = fs::path::preferred_separator; // platform specific separator
-}
-
-	// REGEX PATTERNS
 	const std::regex COMMA_STRING_REGEX("^\\,([1-9]+[0-9]*|\\,*)$");
 	const std::regex DOT_STRING_REGEX("^\\.([1-9]+[0-9]*|\\.*)$");
 
 	const std::regex INTEGER_REGEX("^-?[0-9]+$"); // checks if a string can be an integer
-
+	
+	const char* DEFAULT_COMMAND = "."; // if no path is specified, certain functions default to the current directory
+	
+	const char SEPARATOR = fs::path::preferred_separator; // platform specific separator
+}
 #pragma endregion
 
 
@@ -823,10 +818,6 @@ int CDLS(directory& dir, int argc, char* argv[]) {
 // SECTION: Main
 // -------------
 #pragma region Main
-// Flag for wrapper output
-// Outputs in a way that works better fro wrapper scripts to read
-bool wrapper_mode = false;
-
 // List directory, take input and interpret it
 int run_it(directory& dir) {
 	// List directory
@@ -834,12 +825,7 @@ int run_it(directory& dir) {
 
 	// Display instructions
 	std::cout << "\n\n(Enter an index, path, dot string, comma string or expression:)\n";
-	std::cout << "CDLS (" << VERSION << ") " << fs::current_path().string() << "> ";
-
-	// If in wrapper mode, take input on a new line so that utilities such as tee work properly:
-	if (wrapper_mode) {
-		std::cout << std::endl;
-	}
+	std::cout << "CDLS (C++) " << fs::current_path().string() << "> ";
 
 	// Take input
 	std::string input;
@@ -864,39 +850,10 @@ int main_real(int argc, char* argv[]) {
 
 	// If there are command line arguments, interpret them
 	if (argc > 1) {
-		// If the first argument is -h, display help
-		if (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help") {
-			std::cout << "Usage: cdls [options] [arg1] [arg2]...[argn]\n";
-			std::cout << "Options:\n";
-			std::cout << "  -w\tRun in wrapper mode\n";
-			std::cout << "  -h, --help\tDisplay this help message\n";
-			std::cout << "  -v, --version\tDisplay version information\n";
-			return 0;
-		}
-
-		// If the first argument is -v, display version
-		if (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version") {
-			std::cout << "CDLS (C++) version " << VERSION << std::endl;
-			return 0;
-		}
-
-		// If the first argument is -w, set wrapper mode and remove flag from args
-		if (std::string(argv[1]) == "-w") {
-			wrapper_mode = true;
-			argc--;
-			argv++;
-		}
-
-		// Check if args have been provided minus flags
-		if (argc > 1) {
-			std::cerr << "Error: No arguments provided for wrapper mode." << std::endl;
-
-			// Run the main loop with the arguments
-			return CDLS(dir, argc, argv);
-		}
+		return CDLS(dir, argc, argv);
 	}
 
-	// Else run the main loop without args
+	// Else run the main loop
 	while (true) {
 		int result = run_it(dir);
 		if (result == 3) {
@@ -909,19 +866,12 @@ int main_real(int argc, char* argv[]) {
 
 
 int main(int argc, char* argv[]) {
-	// Get appropriate exit code
-	int retval = main_real(argc, argv);
+	// Ouput final cwd to stderr
+	// TODO: May be a better way of doing this (i.e. alternative streams, but not always available)
+	std::cerr << "Final CWD: " << fs::current_path().string() << std::endl;
 
-	// Ouput final cwd to stderr (or stdout if in wrapper mode)
-	if (!wrapper_mode) {
-		std::cerr << "Final CWD: " << fs::current_path().string() << std::endl;
-	}
-	else {
-		std::cout << fs::current_path().string() << std::endl;
-	}
-
-	// Exit with the appropriate code
-	return retval;
+	// Exit with appropriate code
+	return main_real(argc, argv);
 }
 
 #pragma endregion

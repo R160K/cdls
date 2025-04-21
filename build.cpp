@@ -53,10 +53,7 @@ namespace fs = std::filesystem;
 // ------------------
 #pragma region Constants
 extern "C" {
-#ifndef APP_VERSION
-#define APP_VERSION "1.1.0"
-#endif
-	const char* VERSION = APP_VERSION;
+	const char* VERSION = "BLANK";
 
 	const char* DEFAULT_COMMAND = "."; // if no path is specified, certain functions default to the current directory
 	const char SEPARATOR = fs::path::preferred_separator; // platform specific separator

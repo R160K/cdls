@@ -6,3 +6,5 @@ INSTALL.txt
 make.ps1
 install.ps1
 uninstall.ps1
+
+bin/CON

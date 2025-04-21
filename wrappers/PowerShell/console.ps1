@@ -1,44 +1,33 @@
-﻿# TODO: Make this accept multiple commandline args
+﻿# A wrapper script to run cdls and change the cwd after
 
-# TODO: Allow PS commands to be input if not resolved as CDLS
+# TODO: Make -v and -h work
+# for version & help
+
+#TODO: Add alternative path for testing
+
+# Location of $CDLS_PATH
+$CDLS_PATH = "cdls_ex.exe"
+
 
 function cdls {
 
-	param ( [string[]]$Inputs = "" )
-	
-	$Repeat = $false
-	
-	while ($true) {
-		if (-not  $Inputs) {
-			$Repeat = $true
-			
-			$THE_STRING = "CDLS (Powershell) "+(Get-Location).Path+"> "
-			Write-Host $THE_STRING -NoNewLine
-			$cmd = Read-Host
-			$Inputs = @()
-			$Inputs += $cmd
-			
-			if (-not $Inputs) {
-				cdls.exe "."
-				$Repeat = $false
-				return
-			}
-		}
-		
-		
-		$output = & cdls_ex.exe $Inputs
-		echo $output
+	param (
+	[switch]$w,
+	[Parameter(ValueFromRemainingArguments = $true)]
+	[string[]]$Inputs
+	)
 
-		$directory_line = echo $output | Select-String -Pattern "Directory: "
-		$dir_string = $directory_line.ToString()
-		$directory = $dir_string.Substring(11)
-
-		cd $directory
-		
-		$Inputs = $null
-		
-		if (-not $Repeat) {
-			break
-		}
+	# Add -w to list of arguments if not already present
+	if ($Inputs.Length -eq 0 -or -not ($Inputs[0].Trim() -like "-*")) {
+		$Inputs = @("-w") + $Inputs
 	}
+
+	
+	# Run app and get last line
+	& $CDLS_PATH $Inputs | Tee-Object -Variable output
+	$lastLine = $output[-1]
+
+	# Change cwd
+	cd $lastLine
+	
 }
