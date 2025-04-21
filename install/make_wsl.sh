@@ -1,8 +1,12 @@
 #!/bin/bash
 
+# TODO: Fix PYTHONPATH
+# TODO: Work out if /etc/profile is best global option (non-login shells)
+# TODO: Updat /etc/bash.bashrc to point to /etc/profile.d/cdls_wrapper.sh
+
 # TODO: Get version
-VERSION="1.2.0"
-VERSION_BUILD="1_2_0"
+VERSION=$(jq -r ".VERSION" config.json)
+VERSION_BUILD="${VERSION//./_}"
 
 # Build executable and library
 g++ -std=c++23 -o ./bin/cdls.bin -DAPP_VERSION=\"$VERSION\" ./src/main.cpp
@@ -29,8 +33,8 @@ sudo mkdir /lib/cdls/wrappers/python
 
 # Copy python wrapper module
 sudo cp ./wrappers/Python/cdls.py /lib/cdls/wrappers/python/cdls.py
-
 echo "Attempting to amend PYTHONPATH"
+
 # Amend python path
 TARGET="/lib/cdls/wrappers/python/"
 IFS=':' read -ra PYTHONPATH_ARR <<< "$PYTHONPATH"
@@ -48,3 +52,7 @@ if ! $found; then
 fi
 
 echo "PYTHONPATH=$PYTHONPATH"
+
+
+# Add bash wrapper
+sudo cp ./wrappers/bash/wrapper.sh /etc/profile.d/cdls_wrapper.sh
