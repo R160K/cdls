@@ -29,9 +29,8 @@ sudo mkdir /lib/cdls/wrappers/python
 
 # Copy python wrapper module
 sudo cp ./wrappers/Python/cdls.py /lib/cdls/wrappers/python/cdls.py
-EXP
-echo "Attempting to amend PYTHONPATH"
 
+echo "Attempting to amend PYTHONPATH"
 # Amend python path
 TARGET="/lib/cdls/wrappers/python/"
 IFS=':' read -ra PYTHONPATH_ARR <<< "$PYTHONPATH"
