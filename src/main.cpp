@@ -1,7 +1,5 @@
 // Compiled shell and platform agnostic core of cdls
 
-// TODO: Error handling for access denied (CD)
-
 // TODO: Allow sub-paths for dot paths and comma paths - e.g. ,,,/Documents .3/Folder
 // TODO: Allowing autocompletion down the tree could be a very powerful tool for this app
 
@@ -9,6 +7,9 @@
 // TODO: Create man and cheat pages on Linux, and just general --help/-?
 
 // TODO: Try and fix auto-complete function (shorthand) so that it breaks when alphabetically greater than the string (not working currently, so commented out)
+// (may be an idea to check if the first character of the string, converted to lower case, is greater than than the first character of the string sought).
+
+// NOTE: Currently not using explicit EXPORT of variables or methods beyond extern "C". May need to add this to give greater flexibility when building.
 
 // ---------------
 // SECTION: Header
@@ -54,13 +55,14 @@ namespace fs = std::filesystem;
 #pragma region Constants
 extern "C" {
 #ifndef APP_VERSION
-#define APP_VERSION "1.1.0"
+#define APP_VERSION "1.2.0"
 #endif
 	const char* VERSION = APP_VERSION;
 
 	const char* DEFAULT_COMMAND = "."; // if no path is specified, certain functions default to the current directory
-	const char SEPARATOR = fs::path::preferred_separator; // platform specific separator
 }
+
+	const char SEPARATOR = fs::path::preferred_separator; // platform specific separator
 
 	// REGEX PATTERNS
 	const std::regex COMMA_STRING_REGEX("^\\,([1-9]+[0-9]*|\\,*)$");
