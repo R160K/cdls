@@ -4,7 +4,6 @@ bin/cdls.bin
 bin/cdls_lib.so
 
 INSTALL.txt
-TODO.txt
 
 make.ps1
 install.ps1

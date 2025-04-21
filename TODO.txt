@@ -1,0 +1,1 @@
+1. Remove -w flag from main C++ program to simplify wrapping. Perhaps consider a new -c (console mode) flag, but is probably pointless.
