@@ -1,0 +1,2 @@
+This folder contains (for the moment) rudimentary build and install scripts for various platforms.
+Hoping to improve this properly using CMAKE etc. in future.

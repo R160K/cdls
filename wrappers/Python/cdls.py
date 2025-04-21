@@ -13,10 +13,11 @@ lib_path = ""
 
 if os.name == "nt":
     # Running on Windows
-    lib_path = r"C:\Program Files\cdls\cdls_lib.dll"
+    os.add_dll_directory(r"C:\Program Files\cdls")
+    lib_path = r"cdls_lib.dll"
 else:
     # Assume is running on UNIX
-    lib_path = r"/lib/cdls_lib.so"
+    lib_path = r"cdls_lib.so"
 
 
 # Import DLL
