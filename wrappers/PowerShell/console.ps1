@@ -2,11 +2,16 @@
 
 # TODO: Make -v and -h work
 # for version & help
+# (-w might be getting removed by default, maybe replaced with -c console mode)
 
-#TODO: Add alternative path for testing
+# On load, check if an alternative path has been given
+param (
+	[Alias("p")]
+	[string]$Path = "cdls_ex.exe" # Default Windows install path is "C:\Program Files\cdls\cdls_ex.exe"
+)
 
 # Location of $CDLS_PATH
-$CDLS_PATH = "cdls_ex.exe"
+$CDLS_PATH = $Path
 
 
 function cdls {

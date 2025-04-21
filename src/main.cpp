@@ -1,5 +1,7 @@
 // Compiled shell and platform agnostic core of cdls
 
+// Consider getting rid of wrapper-mode flag and making it the default behaviour
+
 // TODO: Allow sub-paths for dot paths and comma paths - e.g. ,,,/Documents .3/Folder
 // TODO: Allowing autocompletion down the tree could be a very powerful tool for this app
 
