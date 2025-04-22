@@ -1,7 +1,6 @@
 #!/bin/sh
 
 EXE_PATH=cdls_ex
-#EXE_PATH = /bin/cdls_ex
 
 # Check if command-line arg has been passed with new EXE_PATH
 if [ $# -gt 0 ]; then
@@ -11,7 +10,9 @@ elif [ $CDLS_EXE_PATH ]; then
     EXE_PATH=$CDLS_EXE_PATH
 fi
 
-echo $EXE_PATH
+# Announce which EXE_PATH is being used.
+# TODO: Perhaps consider a silent option for this in future?
+echo "Looking for cdls executable at: $EXE_PATH"
 
 cdls() {
 	cd $($EXE_PATH -w "$@" | tee /dev/tty | tail -n 1)
