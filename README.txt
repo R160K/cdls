@@ -12,8 +12,8 @@ Usage:
 Options:
 	-h, --help : Displays help.
 	-v, --version : Displays the current version.
-	-w : Wrapper-mode; presents output in a way that is easier for wrapper scripts to read. (now default)
-	-c : Console-mode; looks better running as a standalone program.
+	-w, --wrapper : Wrapper-mode; presents output in a way that is easier for wrapper scripts to read. (now default)
+	-c, --console : Console-mode; looks better running as a standalone program.
 
 Commands:
 
