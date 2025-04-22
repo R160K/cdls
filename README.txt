@@ -1,6 +1,6 @@
 cdls is a directory walker; a simple productivity tool to view and navigate directories quickly.
 
-Still in development. A major part of the program is changing the current working directory, which as a standalone program is pointless in the context of the parent shell. So this is best implemented via wrapper scripts.
+A major part of the program is changing the current working directory, which as a standalone program is pointless in the context of the parent shell. So this is best implemented via wrapper scripts.
 
 This app will list the contents of given directory, with all subdirectories given indices that can be input instead of a name.
 
@@ -31,4 +31,32 @@ Commands:
 6. Enter a blank command (or exit) to quit back to parent shell.
 
 
-ADDENDUM: As one of the major functions of this code is to change the cwd, shell-specific wrappers are an important part of the project.
+---------------------------------------------------
+
+BUILDING: Section to be updated. Ad-hoc build scripts should be replaced with something like CMake.
+
+---------------------------------------------------
+
+
+INSTALLING:
+
+As one of the major functions of this code is to change the cwd, shell-specific wrappers are an important part of the project. There are currently wrappers for PowerShell on Windows and bash on Unix. There is also a Python module to access cdls functions via a dynamic library.
+
+To install:
+(Assuming binaries are already built)
+
+cdls_ex(.exe)
+1. Place executable (cdls.exe/cdls.bin) somewhere; most wrappers expect it to be called "cdls_ex.exe" (Windows) or "cdls_ex" (Unix) and be available in the PATH. On Linux it is recommended to place it in one of the binary folders (/bin, /usr/bin etc.) On Windows it is recommended to create a folder "C:\Program Files\cdls" and add it to PATH.
+
+wrapper.sh - Linux
+2. On Linux: place the wrapper.sh file somewhere. You could place it (if available) in /etc/profile.d to have it loaded automatically when the shell starts; or place it somewhere like /lib/cdls/wrappers/sh/cdls.sh and load it in e.g. ~/.bashrc or the global bash init script: ". /lib/cdls/wrappers/sh/cdls.sh"
+2.1 wrapper.sh looks for the executable in three places: firstly, if a path to the file is passed as a first commandline argument, that takes precedence. Secondly, if the $CDLS_EXE_PATH environment variable is set, it uses that. If neither of those are provided, it uses normal resolution (local dir followed by PATH).
+
+console.ps1 - PowerShell
+3. On Windows: place the console.ps1 file somewhere; recommended is "C:\Program Files\cdls\wrappers\PowerShell\cdls.ps1". Then add it to an appropriate profile file, $profile for local user, $PROFILE.AllUsersAllHosts for global scope. ". [PATH].ps1"
+
+cdls_lib.dll/.so
+4. If utilising the library (e.g. for the Python module), it is recommended to place it in /lib or /usr/lib (Linux) or "C:\Program Files\cdls" (Windows), and have it available on PATH.
+
+cdls.py
+5. To install the Python module and have it available, it is recommended to place it somewhere like "C:\Program Files\cdls\wrappers\Python\cdls.py" (Windows) or /(usr/)lib/cdls/wrappers/python/cdls.py (Linux), and permanently add it to the local or system $PYTHONPATH environment variable.
