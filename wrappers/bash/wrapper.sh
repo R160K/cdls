@@ -15,7 +15,7 @@ fi
 echo "Looking for cdls executable at: $EXE_PATH"
 
 cdls() {
-	cd $($EXE_PATH -w "$@" | tee /dev/tty | tail -n 1)
+	cd $($EXE_PATH "$@" | tee /dev/tty | tail -n 1)
 }
 
 export -f cdls
