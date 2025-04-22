@@ -1,7 +1,5 @@
 // Compiled shell and platform agnostic core of cdls
 
-// Consider getting rid of wrapper-mode flag and making it the default behaviour
-
 // TODO: Allow sub-paths for dot paths and comma paths - e.g. ,,,/Documents .3/Folder
 // TODO: Allowing autocompletion down the tree could be a very powerful tool for this app
 
@@ -12,6 +10,9 @@
 // (may be an idea to check if the first character of the string, converted to lower case, is greater than than the first character of the string sought).
 
 // NOTE: Currently not using explicit EXPORT of variables or methods beyond extern "C". May need to add this to give greater flexibility when building.
+// EXPORT macro could default to extern "C" if not defined, or be supplied by the compiler.
+
+// TODO: Current library exposure is pretty limited. Explore how this could be expanded, including allowing the main loop (run_it) to be exposed as a function.
 
 // ---------------
 // SECTION: Header
@@ -807,12 +808,17 @@ int CDLS(directory& dir, int argc, char* argv[]) {
 			dir.flush();
 
 			if (retval != 0) {
+				
 				LS(dir);
+				
 				return retval;
 			}
 		}
 
+
 		LS(dir);
+		
+		
 		std::cout << std::endl;
 
 	}
@@ -828,8 +834,8 @@ int CDLS(directory& dir, int argc, char* argv[]) {
 // -------------
 #pragma region Main
 // Flag for wrapper output
-// Outputs in a way that works better fro wrapper scripts to read
-bool wrapper_mode = false;
+// Outputs in a way that works better for wrapper scripts to read
+bool wrapper_mode = true; // Set to false for normal output (console mode)
 
 // List directory, take input and interpret it
 int run_it(directory& dir) {
@@ -872,7 +878,8 @@ int main_real(int argc, char* argv[]) {
 		if (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help") {
 			std::cout << "Usage: cdls [options] [arg1] [arg2]...[argn]\n";
 			std::cout << "Options:\n";
-			std::cout << "  -w\tRun in wrapper mode\n";
+			std::cout << "  -w\tRun in wrapper mode (default)\n";
+			std::cout << "  -c\tRun in console mode\n";
 			std::cout << "  -h, --help\tDisplay this help message\n";
 			std::cout << "  -v, --version\tDisplay version information\n";
 			return 0;
@@ -885,16 +892,19 @@ int main_real(int argc, char* argv[]) {
 		}
 
 		// If the first argument is -w, set wrapper mode and remove flag from args
-		if (std::string(argv[1]) == "-w") {
+		if (std::string(argv[1]) == "-w" || std::string(argv[1]) == "--wrapper") {
 			wrapper_mode = true;
+			argc--;
+			argv++;
+		}
+		else if (std::string(argv[1]) == "-c" || std::string(argv[1]) == "--console") {
+			wrapper_mode = false; // Set to false for normal output (console mode)
 			argc--;
 			argv++;
 		}
 
 		// Check if args have been provided minus flags
 		if (argc > 1) {
-			std::cerr << "Error: No arguments provided for wrapper mode." << std::endl;
-
 			// Run the main loop with the arguments
 			return CDLS(dir, argc, argv);
 		}
@@ -918,7 +928,7 @@ int main(int argc, char* argv[]) {
 
 	// Ouput final cwd to stderr (or stdout if in wrapper mode)
 	if (!wrapper_mode) {
-		std::cerr << "Final CWD: " << fs::current_path().string() << std::endl;
+		// std::cerr << "Final CWD: " << fs::current_path().string() << std::endl;
 	}
 	else {
 		std::cout << fs::current_path().string() << std::endl;

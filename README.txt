@@ -10,9 +10,10 @@ Usage:
 	cdls[_ex] [option] [command1] [command2] ... [commandN]
 	
 Options:
-	-h : Displays help.
-	-v : Displays the current version.
-	-w : Wrapper-mode; presents output in a way that is easier for wrapper scripts to read.
+	-h, --help : Displays help.
+	-v, --version : Displays the current version.
+	-w : Wrapper-mode; presents output in a way that is easier for wrapper scripts to read. (now default)
+	-c : Console-mode; looks better running as a standalone program.
 
 Commands:
 

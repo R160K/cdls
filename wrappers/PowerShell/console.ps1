@@ -2,7 +2,6 @@
 
 # TODO: Make -v and -h work
 # for version & help
-# (-w might be getting removed by default, maybe replaced with -c console mode)
 
 # On load, check if an alternative path has been given
 param (
@@ -17,18 +16,12 @@ $CDLS_PATH = $Path
 function cdls {
 
 	param (
-	[switch]$w,
 	[Parameter(ValueFromRemainingArguments = $true)]
 	[string[]]$Inputs
 	)
 
-	# Add -w to list of arguments if not already present
-	if ($Inputs.Length -eq 0 -or -not ($Inputs[0].Trim() -like "-*")) {
-		$Inputs = @("-w") + $Inputs
-	}
 
-	
-	# Run app and get last line
+	# Run app with parameters and get last line
 	& $CDLS_PATH $Inputs | Tee-Object -Variable output
 	$lastLine = $output[-1]
 
