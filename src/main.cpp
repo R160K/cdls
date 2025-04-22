@@ -878,8 +878,8 @@ int main_real(int argc, char* argv[]) {
 		if (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help") {
 			std::cout << "Usage: cdls [options] [arg1] [arg2]...[argn]\n";
 			std::cout << "Options:\n";
-			std::cout << "  -w\tRun in wrapper mode (default)\n";
-			std::cout << "  -c\tRun in console mode\n";
+			std::cout << "  -w, --wrapper\tRun in wrapper mode (default)\n";
+			std::cout << "  -c, --console\tRun in console mode\n";
 			std::cout << "  -h, --help\tDisplay this help message\n";
 			std::cout << "  -v, --version\tDisplay version information\n";
 			return 0;
