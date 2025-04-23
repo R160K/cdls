@@ -8,6 +8,8 @@
 VERSION=$(jq -r ".VERSION" config.json)
 VERSION_BUILD="${VERSION//./_}"
 
+PLATFORM="ARM"
+
 # Build executable and library
 g++ -std=c++23 -o ./bin/cdls.bin -DAPP_VERSION=\"$VERSION\" ./src/main.cpp
 
@@ -16,15 +18,18 @@ g++ -shared -o ./bin/cdls_lib.so ./bin/main.o
 rm ./bin/main.o
 
 # Copy to shared builds for Unix on x86
-cp ./bin/cdls.bin "./bin/cdls_unix_x86_64_v$VERSION.bin"
-cp ./bin/cdls_lib.so "./bin/cdls__lib_unix_x86_64_v$VERSION.so"
+cp ./bin/cdls.bin "./bin/cdls_unix_$PLATFORM_v$VERSION.bin"
+cp ./bin/cdls_lib.so "./bin/cdls_lib_unix_$PLATFORM_v$VERSION_BUILD.so"
 
+exit # Install after
 
 # Install
 sudo cp ./bin/cdls_lib.so /lib/cdls_lib.so
 sudo cp ./bin/cdls.bin /bin/cdls_ex
 
 echo "Binaries built and installed!"
+
+exit # Fix so can install after
 
 # Create directory for python wrapper module
 sudo mkdir /lib/cdls
