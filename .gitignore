@@ -12,6 +12,8 @@ install.ps1
 uninstall.ps1
 
 make.sh
+install.sh
+uninstall.sh
 
 bin/CON
 =======
