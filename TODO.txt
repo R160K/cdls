@@ -3,3 +3,5 @@
 #. Consider simplifying (i.e. stripping back) the C++ to allow better compatibility with older systems. Current potential issues with regex and string.starts_with. Do we really need to do things this way?
 
 #. Add a silent option -s --silent that allows using cdls interpretation to change directories without ls'ing. (Can primarily be done via wrapper scripts; perhaps a function-based option for library use can be considered).
+
+#. Trying to build a CMake build option. May be overkill for a project like this. Perhaps providing basic build tools for different platforms will suffice.
