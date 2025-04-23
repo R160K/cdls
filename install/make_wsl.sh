@@ -8,7 +8,9 @@
 VERSION=$(jq -r ".VERSION" config.json)
 VERSION_BUILD="${VERSION//./_}"
 
+#Platform can be overruled using environment variable
 PLATFORM="ARM"
+echo "Building for platform $PLATFORM..."
 
 # Build executable and library
 g++ -std=c++23 -o ./bin/cdls.bin -DAPP_VERSION=\"$VERSION\" ./src/main.cpp
@@ -17,10 +19,12 @@ g++ -c -fPIC -DBUILDING_SHARED -DAPP_VERSION=\"$VERSION\" ./src/main.cpp -o ./bi
 g++ -shared -o ./bin/cdls_lib.so ./bin/main.o
 rm ./bin/main.o
 
-# Copy to shared builds for Unix on x86
-cp ./bin/cdls.bin "./bin/cdls_unix_$PLATFORM_v$VERSION.bin"
-cp ./bin/cdls_lib.so "./bin/cdls_lib_unix_$PLATFORM_v$VERSION_BUILD.so"
+# Copy to shared builds for Unix on appropriate platform
+cp ./bin/cdls.bin "./bin/cdls_unix_${PLATFORM}_v${VERSION_BUILD}.bin"
+cp ./bin/cdls_lib.so "./bin/cdls_lib_unix_${PLATFORM}_v${VERSION_BUILD}.so"
 
+
+echo "Binaries built."
 exit # Install after
 
 # Install
