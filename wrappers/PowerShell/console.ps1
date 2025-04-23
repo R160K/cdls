@@ -4,14 +4,26 @@
 # for version & help
 
 # On load, check if an alternative path has been given
+# param (
+	# [Alias("p")]
+	# [string]$Path = "cdls_ex.exe" # Default Windows install path is "C:\Program Files\cdls\cdls_ex.exe"
+# )
+
 param (
 	[Alias("p")]
-	[string]$Path = "cdls_ex.exe" # Default Windows install path is "C:\Program Files\cdls\cdls_ex.exe"
+	[string]$Path
 )
 
 # Location of $CDLS_PATH
-$CDLS_PATH = $Path
+if ($Path) {
+	$CDLS_PATH = $Path
+} elseif ($env:CDLS_EXE_PATH) {
+	$CDLS_PATH = $env:CDLS_EXE_PATH
+} else {
+	$CDLS_PATH = "cdls_ex.exe"
+}
 
+echo "Looking for cdls executable at: $CDLS_PATH"
 
 function cdls {
 

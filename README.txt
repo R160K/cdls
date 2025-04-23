@@ -55,9 +55,12 @@ wrapper.sh - Linux
 
 console.ps1 - PowerShell
 3. On Windows: place the console.ps1 file somewhere; recommended is "C:\Program Files\cdls\wrappers\PowerShell\cdls.ps1". Then add it to an appropriate profile file, $profile for local user, $PROFILE.AllUsersAllHosts for global scope. ". [PATH].ps1"
+3.1 The wrapper will look for cdls_ex: firstly at the path explicitly passed to it upon initialistion (either single arg or -p -Path [ARG]); secondly at the environment variable $env:CDLS_EXE_PATH; thirdly at "cdls_ex.exe" on the PATH.
 
 cdls_lib.dll/.so
 4. If utilising the library (e.g. for the Python module), it is recommended to place it in /lib or /usr/lib (Linux) or "C:\Program Files\cdls" (Windows), and have it available on PATH.
+4.1 On Linux the location should be added to LD_LIBRARY_PATH in order to be found by the Python module.
 
 cdls.py
 5. To install the Python module and have it available, it is recommended to place it somewhere like "C:\Program Files\cdls\wrappers\Python\cdls.py" (Windows) or /(usr/)lib/cdls/wrappers/python/cdls.py (Linux), and permanently add it to the local or system $PYTHONPATH environment variable.
+5.1 If the CDLS_LIB_PATH environment variable is set, that is where Python will look for the library. Otherwise it looks for cdls_lib.dll/.so in the normal locations (plus "C:\Program Files\cdls" on Windows).

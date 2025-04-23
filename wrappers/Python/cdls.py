@@ -11,12 +11,16 @@ import os
 # Set lib_path
 lib_path = ""
 
-if os.name == "nt":
+if os.environ.get("CDLS_LIB_PATH") is not None:
+    # Use the path specified in the environment variable
+    lib_path = os.environ["CDLS_LIB_PATH"]
+elif os.name == "nt":
     # Running on Windows
     os.add_dll_directory(r"C:\Program Files\cdls")
     lib_path = r"cdls_lib.dll"
 else:
     # Assume is running on UNIX
+    # Will check current directory, followed by LD_LIBRARY_PATH
     lib_path = r"cdls_lib.so"
 
 
@@ -24,12 +28,9 @@ else:
 clib = ctypes.CDLL(lib_path)
 
 
-#Constants
+# Constants
 DEFAULT_COMMAND = ctypes.c_char_p.in_dll(clib, "DEFAULT_COMMAND").value
 VERSION = ctypes.c_char_p.in_dll(clib, "VERSION").value
-
-#SEPARATOR = ctypes.c_char.in_dll(clib, "SEPARATOR").value
-
 
 # Get input and output types set up
 clib.LS.argtypes = []
