@@ -9,7 +9,12 @@ VERSION=$(jq -r ".VERSION" config.json)
 VERSION_BUILD="${VERSION//./_}"
 
 #Platform can be overruled using environment variable
-PLATFORM="ARM"
+if [ $CDLS_BUILD_PLATFORM ]; then
+    PLATFORM="$CDLS_BUILD_PLATFORM"
+else
+    PLATFORM="arm_aarch64"
+fi
+
 echo "Building for platform $PLATFORM..."
 
 # Build executable and library
