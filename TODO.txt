@@ -5,3 +5,6 @@
 #. Add a silent option -s --silent that allows using cdls interpretation to change directories without ls'ing. (Can primarily be done via wrapper scripts; perhaps a function-based option for library use can be considered).
 
 #. Trying to build a CMake build option. May be overkill for a project like this. Perhaps providing basic build tools for different platforms will suffice.
+
+#. Add powerful option to connect via sftp and copy and edit files on host machine.
+cdls shell commands (mv, cp, rm, sftp etc.) would be very powerful. Avoid overhead of full fs mounting (and problems), but allow directory traversal, copyimg to tmp and editing etc.
